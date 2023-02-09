@@ -7,6 +7,9 @@ from .models import Product
 from .models import Order
 from .models import OrderItem
 
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
 
 def banners_list_api(request):
     # FIXME move data to db?
@@ -60,23 +63,22 @@ def product_list_api(request):
     })
 
 
+@api_view(['POST'])
 def register_order(request):
     try:
-        data = json.loads(request.body.decode())
         order = Order.objects.create(
-            address=data['address'],
-            first_name=data['firstname'],
-            last_name=data['lastname'],
-            phone_number=data['phonenumber']
+            address=request.data['address'],
+            first_name=request.data['firstname'],
+            last_name=request.data['lastname'],
+            phone_number=request.data['phonenumber']
         )
-        for item in data['products']:
+        for item in request.data['products']:
             order_item = OrderItem.objects.create(
                 order=order,
                 product=Product.objects.get(id=item['product']),
                 count=item['quantity']
             )
-
-        return JsonResponse({})
+        return Response({})
     except ValueError:
         return JsonResponse({
             'error': 'Ошибка',
