@@ -1,8 +1,11 @@
+import json
 from django.http import JsonResponse
 from django.templatetags.static import static
 
 
 from .models import Product
+from .models import Order
+from .models import OrderItem
 
 
 def banners_list_api(request):
@@ -58,5 +61,23 @@ def product_list_api(request):
 
 
 def register_order(request):
-    # TODO это лишь заглушка
-    return JsonResponse({})
+    try:
+        data = json.loads(request.body.decode())
+        order = Order.objects.create(
+            address=data['address'],
+            first_name=data['firstname'],
+            last_name=data['lastname'],
+            phone_number=data['phonenumber']
+        )
+        for item in data['products']:
+            order_item = OrderItem.objects.create(
+                order=order,
+                product=Product.objects.get(id=item['product']),
+                count=item['quantity']
+            )
+
+        return JsonResponse({})
+    except ValueError:
+        return JsonResponse({
+            'error': 'Ошибка',
+        })
