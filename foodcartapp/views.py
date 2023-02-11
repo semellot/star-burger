@@ -70,22 +70,22 @@ def register_order(request):
     try:
         for key in {'firstname', 'lastname', 'phonenumber', 'address'}:
             if key not in request.data:
-                raise ValueError(f'{key}: Обязательное поле')
+                return Response({'error': f'{key}: Обязательное поле'}, status=400)
             elif not request.data[key]:
-                raise ValueError(f'{key}: Это поле не может быть пустым')
+                return Response({'error': f'{key}: Это поле не может быть пустым'}, status=400)
             elif not isinstance(request.data[key], str):
-                raise ValueError(f'{key}: Ожидается str')
+                return Response({'error': f'{key}: Ожидается str'}, status=400)
 
         phone_number = PhoneNumber.from_string(request.data['phonenumber'])
         if not phone_number.is_valid():
-            raise ValueError('phonenumber: Введен некорректный номер телефона')
+            return Response({'error': 'phonenumber: Введен некорректный номер телефона'}, status=400)
 
         if 'products' not in request.data:
-            raise ValueError('products: Обязательное поле')
+            return Response({'error': 'products: Обязательное поле'}, status=400)
         elif not request.data['products']:
-            raise ValueError('products: Этот список не может быть пустым')
+            return Response({'error': 'products: Этот список не может быть пустым'}, status=400)
         elif not isinstance(request.data['products'], list):
-            raise ValueError('products: Ожидался list со значениями')
+            return Response({'error': 'products: Ожидался list со значениями'}, status=400)
         else:
             order = Order.objects.create(
                 address=request.data['address'],
@@ -102,9 +102,9 @@ def register_order(request):
                 )
             
         return Response({},status=status.HTTP_200_OK)
-    except ValueError as error:
+    except ValueError:
         return Response(
-            {'error': error.args[0]},
+            {'error': 'Error'},
             status=status.HTTP_200_OK
         )
     except Product.DoesNotExist:
