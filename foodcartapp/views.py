@@ -1,12 +1,13 @@
 import json
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.templatetags.static import static
-
 
 from .models import Product
 from .models import Order
 from .models import OrderItem
 
+from phonenumber_field.phonenumber import PhoneNumber
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -67,29 +68,53 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request):
     try:
-        order = Order.objects.create(
-            address=request.data['address'],
-            first_name=request.data['firstname'],
-            last_name=request.data['lastname'],
-            phone_number=request.data['phonenumber']
-        )
-        try:
-            if request.data['products'] and isinstance(request.data['products'], list):
-                for item in request.data['products']:
-                    order_item = OrderItem.objects.create(
-                        order=order,
-                        product=Product.objects.get(id=item['product']),
-                        count=item['quantity']
-                    )
-                return Response({},status=request_status)
-            else:
-                raise()
-        except:
-            return Response(
-                {'error': 'Product key not presented or not list'},
-                status=status.HTTP_200_OK
+        for key in {'firstname', 'lastname', 'phonenumber', 'address'}:
+            if key not in request.data:
+                raise ValueError(f'{key}: Обязательное поле')
+            elif not request.data[key]:
+                raise ValueError(f'{key}: Это поле не может быть пустым')
+            elif not isinstance(request.data[key], str):
+                raise ValueError(f'{key}: Ожидается str')
+
+        phone_number = PhoneNumber.from_string(request.data['phonenumber'])
+        if not phone_number.is_valid():
+            raise ValueError('phonenumber: Введен некорректный номер телефона')
+
+        if 'products' not in request.data:
+            raise ValueError('products: Обязательное поле')
+        elif not request.data['products']:
+            raise ValueError('products: Этот список не может быть пустым')
+        elif not isinstance(request.data['products'], list):
+            raise ValueError('products: Ожидался list со значениями')
+        else:
+            order = Order.objects.create(
+                address=request.data['address'],
+                first_name=request.data['firstname'],
+                last_name=request.data['lastname'],
+                phone_number=PhoneNumber.from_string(request.data['phonenumber'])
             )
-    except ValueError:
-        return JsonResponse({
-            'error': error,
-        })
+        
+            for item in request.data['products']:
+                order_item = OrderItem.objects.create(
+                    order=order,
+                    product=Product.objects.get(id=item['product']),
+                    count=item['quantity']
+                )
+            
+        return Response({},status=status.HTTP_200_OK)
+    except ValueError as error:
+        return Response(
+            {'error': error.args[0]},
+            status=status.HTTP_200_OK
+        )
+    except Product.DoesNotExist:
+        return Response(
+            {'error': 'products: Недопустимый первичный ключ'},
+            status=status.HTTP_200_OK
+        )
+    except NumberParseException.INVALID_COUNTRY_CODE:
+        return Response(
+            {'error': 'phonenumber: Введен некорректный номер телефона'},
+            status=status.HTTP_200_OK
+        )
+
