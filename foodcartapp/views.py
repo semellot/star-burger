@@ -26,19 +26,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    products = OrderItemSerializer(many=True, allow_empty=False)
+    id = serializers.IntegerField(read_only=True)
+    products = OrderItemSerializer(many=True, allow_empty=False, write_only=True)
 
     class Meta:
         model = Order
-        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
-
-
-class OrderDataSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    firstname = serializers.CharField()
-    lastname = serializers.CharField()
-    phonenumber = serializers.CharField()
-    address = serializers.CharField()
+        fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address', 'products']
 
 
 def banners_list_api(request):
@@ -109,9 +102,6 @@ def register_order(request):
     products = [OrderItem(order=order, **fields) for fields in products_fields]
     OrderItem.objects.bulk_create(products)
 
-    order_serializer = OrderDataSerializer(order)
-    content = JSONRenderer().render(order_serializer.data)
-    stream = io.BytesIO(content)
-    data = JSONParser().parse(stream)
+    order_serializer = OrderSerializer(order)
 
-    return Response(data)
+    return Response(order_serializer.data)
