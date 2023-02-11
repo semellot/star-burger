@@ -118,8 +118,8 @@ class OrderAdmin(admin.ModelAdmin):
         OrderItemInline
     ]
     list_display = [
-        'phone_number',
-        'last_name',
-        'first_name',
+        'phonenumber',
+        'lastname',
+        'firstname',
         'address',
     ]

@@ -11,6 +11,21 @@ from phonenumber_field.phonenumber import PhoneNumber
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.serializers import ModelSerializer
+
+
+class OrderItemSerializer(ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = ['product', 'quantity']
+
+
+class OrderSerializer(ModelSerializer):
+    products = OrderItemSerializer(many=True, allow_empty=False)
+
+    class Meta:
+        model = Order
+        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
 
 
 def banners_list_api(request):
@@ -67,54 +82,18 @@ def product_list_api(request):
 
 @api_view(['POST'])
 def register_order(request):
-    try:
-        for key in {'firstname', 'lastname', 'phonenumber', 'address'}:
-            if key not in request.data:
-                return Response({'error': f'{key}: Обязательное поле'}, status=400)
-            elif not request.data[key]:
-                return Response({'error': f'{key}: Это поле не может быть пустым'}, status=400)
-            elif not isinstance(request.data[key], str):
-                return Response({'error': f'{key}: Ожидается str'}, status=400)
+    serializer = OrderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-        phone_number = PhoneNumber.from_string(request.data['phonenumber'])
-        if not phone_number.is_valid():
-            return Response({'error': 'phonenumber: Введен некорректный номер телефона'}, status=400)
+    order = Order.objects.create(
+        address=serializer.validated_data['address'],
+        firstname=serializer.validated_data['firstname'],
+        lastname=serializer.validated_data['lastname'],
+        phonenumber=PhoneNumber.from_string(serializer.validated_data['phonenumber'])
+    )
 
-        if 'products' not in request.data:
-            return Response({'error': 'products: Обязательное поле'}, status=400)
-        elif not request.data['products']:
-            return Response({'error': 'products: Этот список не может быть пустым'}, status=400)
-        elif not isinstance(request.data['products'], list):
-            return Response({'error': 'products: Ожидался list со значениями'}, status=400)
-        else:
-            order = Order.objects.create(
-                address=request.data['address'],
-                first_name=request.data['firstname'],
-                last_name=request.data['lastname'],
-                phone_number=PhoneNumber.from_string(request.data['phonenumber'])
-            )
-        
-            for item in request.data['products']:
-                order_item = OrderItem.objects.create(
-                    order=order,
-                    product=Product.objects.get(id=item['product']),
-                    count=item['quantity']
-                )
-            
-        return Response({},status=status.HTTP_200_OK)
-    except ValueError:
-        return Response(
-            {'error': 'Error'},
-            status=status.HTTP_200_OK
-        )
-    except Product.DoesNotExist:
-        return Response(
-            {'error': 'products: Недопустимый первичный ключ'},
-            status=status.HTTP_200_OK
-        )
-    except NumberParseException.INVALID_COUNTRY_CODE:
-        return Response(
-            {'error': 'phonenumber: Введен некорректный номер телефона'},
-            status=status.HTTP_200_OK
-        )
+    products_fields = serializer.validated_data['products']
+    products = [OrderItem(order=order, **fields) for fields in products_fields]
+    OrderItem.objects.bulk_create(products)
 
+    return Response({})
