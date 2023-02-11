@@ -1,31 +1,44 @@
 import json
+import io
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.templatetags.static import static
 
-from .models import Product
+from phonenumber_field.phonenumber import PhoneNumber
+
+from rest_framework import status
+from rest_framework import serializers
+from rest_framework.decorators import api_view
+from rest_framework.parsers import JSONParser
+from rest_framework.response import Response
+from rest_framework.renderers import JSONRenderer
+
 from .models import Order
 from .models import OrderItem
-
-from phonenumber_field.phonenumber import PhoneNumber
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework.serializers import ModelSerializer
+from .models import Product
 
 
-class OrderItemSerializer(ModelSerializer):
+class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ['product', 'quantity']
 
 
-class OrderSerializer(ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     products = OrderItemSerializer(many=True, allow_empty=False)
 
     class Meta:
         model = Order
         fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
+
+
+class OrderDataSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    firstname = serializers.CharField()
+    lastname = serializers.CharField()
+    phonenumber = serializers.CharField()
+    address = serializers.CharField()
 
 
 def banners_list_api(request):
@@ -96,4 +109,9 @@ def register_order(request):
     products = [OrderItem(order=order, **fields) for fields in products_fields]
     OrderItem.objects.bulk_create(products)
 
-    return Response({})
+    order_serializer = OrderDataSerializer(order)
+    content = JSONRenderer().render(order_serializer.data)
+    stream = io.BytesIO(content)
+    data = JSONParser().parse(stream)
+
+    return Response(data)
