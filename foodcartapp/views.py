@@ -7,6 +7,7 @@ from .models import Product
 from .models import Order
 from .models import OrderItem
 
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -72,14 +73,23 @@ def register_order(request):
             last_name=request.data['lastname'],
             phone_number=request.data['phonenumber']
         )
-        for item in request.data['products']:
-            order_item = OrderItem.objects.create(
-                order=order,
-                product=Product.objects.get(id=item['product']),
-                count=item['quantity']
+        try:
+            if request.data['products'] and isinstance(request.data['products'], list):
+                for item in request.data['products']:
+                    order_item = OrderItem.objects.create(
+                        order=order,
+                        product=Product.objects.get(id=item['product']),
+                        count=item['quantity']
+                    )
+                return Response({},status=request_status)
+            else:
+                raise()
+        except:
+            return Response(
+                {'error': 'Product key not presented or not list'},
+                status=status.HTTP_200_OK
             )
-        return Response({})
     except ValueError:
         return JsonResponse({
-            'error': 'Ошибка',
+            'error': error,
         })
