@@ -1,6 +1,7 @@
 import json
 import io
 
+from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.templatetags.static import static
@@ -91,17 +92,17 @@ def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    order = Order.objects.create(
-        address=serializer.validated_data['address'],
-        firstname=serializer.validated_data['firstname'],
-        lastname=serializer.validated_data['lastname'],
-        phonenumber=PhoneNumber.from_string(serializer.validated_data['phonenumber'])
-    )
-
-    products_fields = serializer.validated_data['products']
-    products = [OrderItem(order=order, price=fields['quantity']*fields['product'].price, **fields) for fields in products_fields]
-    OrderItem.objects.bulk_create(products)
-
-    order_serializer = OrderSerializer(order)
-
-    return Response(order_serializer.data)
+    with transaction.atomic():
+        order = Order.objects.create(
+            address=serializer.validated_data['address'],
+            firstname=serializer.validated_data['firstname'],
+            lastname=serializer.validated_data['lastname'],
+            phonenumber=PhoneNumber.from_string(serializer.validated_data['phonenumber'])
+        )
+        
+        products_fields = serializer.validated_data['products']
+        products = [OrderItem(order=order, price=fields['quantity']*fields['product'].price, **fields) for fields in products_fields]
+        OrderItem.objects.bulk_create(products)
+        
+        order_serializer = OrderSerializer(order)
+        return Response(order_serializer.data)
