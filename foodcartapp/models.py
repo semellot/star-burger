@@ -160,6 +160,10 @@ class Order(models.Model):
     phonenumber = PhoneNumberField(
         'Мобильный номер'
     )
+    comment = models.TextField(
+        'Комментарий',
+        blank=True
+    )
 
     objects = OrderQuerySet.as_manager()
 
