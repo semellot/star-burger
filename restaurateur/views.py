@@ -3,13 +3,18 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
-
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 
-from foodcartapp.models import Product, Restaurant, Order
+import requests
+from environs import Env
+from geopy import distance
 
+
+env = Env()
+env.read_env()
 
 class Login(forms.Form):
     username = forms.CharField(
@@ -63,6 +68,24 @@ def is_manager(user):
     return user.is_staff  # FIXME replace with specific permission
 
 
+def fetch_coordinates(apikey, address):
+    base_url = "https://geocode-maps.yandex.ru/1.x"
+    response = requests.get(base_url, params={
+        "geocode": address,
+        "apikey": apikey,
+        "format": "json",
+    })
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+    return lat, lon
+
+
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_products(request):
     restaurants = list(Restaurant.objects.order_by('name'))
@@ -92,7 +115,21 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.prefetch_related('products').exclude(status='Done').calculation_cost().get_restaurants()
+    orders = Order.objects.prefetch_related('products').exclude(status='Done').calculation_cost()
+    
+    apikey = env.str('YANDEX_APIKEY')
+
+    for order in orders:
+        order_items = order.products.all()
+        restaurants = RestaurantMenuItem.objects.select_related('restaurant')
+        order_coords = fetch_coordinates(apikey, order.address)
+        for order_item in order_items:
+            restaurants = restaurants.filter(product=order_item.product)
+        for restaurant in restaurants:
+            rest_coords = fetch_coordinates(apikey, restaurant.restaurant.address)
+            restaurant.distance = distance.distance(order_coords, rest_coords).km
+        order.restaurants = restaurants
+
     return render(request, template_name='order_items.html', context={
         'order_items': orders
     })

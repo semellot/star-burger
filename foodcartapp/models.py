@@ -10,15 +10,6 @@ class OrderQuerySet(models.QuerySet):
     def calculation_cost(self):
         return self.annotate(cost=Sum(F('products__quantity') * F('products__product__price')))
 
-    def get_restaurants(self):
-        for order in self:
-            order_items = order.products.all()
-            restaurants = RestaurantMenuItem.objects.all()
-            for order_item in order_items:
-                restaurants = restaurants.filter(product=order_item.product)
-            order.restaurants = restaurants
-        return self
-
 
 class Restaurant(models.Model):
     name = models.CharField(

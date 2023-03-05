@@ -41,8 +41,8 @@
           {% elif item.restaurants %}
             <p>Может быть приготовлен ресторанами:</p>
             <ul>
-            {% for restaurant in item.restaurants %}
-              <li>{{ restaurant }}</li>
+            {% for restaurant in item.restaurants|dictsort:'distance' %}
+              <li>{{ restaurant }} - {{ restaurant.distance }}</li>
             {% endfor %}
             </ul>
           {% else %}
