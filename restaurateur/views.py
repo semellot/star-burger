@@ -124,7 +124,7 @@ def view_orders(request):
     apikey = env.str('YANDEX_APIKEY')
 
     for order in orders:
-        order_items = order.products.all()
+        order_items = order.products.select_related('product')
         restaurants = RestaurantMenuItem.objects.select_related('restaurant')
 
         order_location, created = Location.objects.get_or_create(address=order.address)
