@@ -3,6 +3,9 @@ from django.db.models import F, Sum
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 
+from location.models import Location
+
+from geopy import distance
 from phonenumber_field.modelfields import PhoneNumberField
 
 
@@ -210,6 +213,22 @@ class Order(models.Model):
 
     def __str__(self):
         return f'{self.firstname} {self.lastname} {self.address}'
+
+    def get_available_restaurants(self):
+        order_items = self.products.select_related('product')
+        restaurants = RestaurantMenuItem.objects.select_related('restaurant')
+
+        order_location, created = Location.objects.get_or_create(address=self.address)
+        order_coords = (order_location.latitude, order_location.longitude)
+
+        for order_item in order_items:
+            restaurants = restaurants.filter(product=order_item.product)
+
+        for restaurant in restaurants:
+            rest_location, created = Location.objects.get_or_create(address=restaurant.restaurant.address)
+            rest_coords = (rest_location.latitude, rest_location.longitude)
+            restaurant.distance = distance.distance(order_coords, rest_coords).km
+        self.restaurants = restaurants
 
 
 class OrderItem(models.Model):

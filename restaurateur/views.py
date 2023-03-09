@@ -7,15 +7,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
-from location.models import Location
 
-import requests
-from environs import Env
-from geopy import distance
-
-
-env = Env()
-env.read_env()
 
 class Login(forms.Form):
     username = forms.CharField(
@@ -69,27 +61,6 @@ def is_manager(user):
     return user.is_staff  # FIXME replace with specific permission
 
 
-def fetch_coordinates(apikey, address):
-    print(f'Address: {address}')
-    base_url = "https://geocode-maps.yandex.ru/1.x"
-    response = requests.get(base_url, params={
-        "geocode": address,
-        "apikey": apikey,
-        "format": "json",
-    })
-    response.raise_for_status()
-    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
-
-    if not found_places:
-        return None
-
-    most_relevant = found_places[0]
-    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
-    print(f'longitude: {lon}')
-    print(f'latitude: {lat}')
-    return lat, lon
-
-
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_products(request):
     restaurants = list(Restaurant.objects.order_by('name'))
@@ -121,29 +92,8 @@ def view_restaurants(request):
 def view_orders(request):
     orders = Order.objects.prefetch_related('products').exclude(status='Done').calculation_cost()
 
-    apikey = env.str('YANDEX_APIKEY')
-
     for order in orders:
-        order_items = order.products.select_related('product')
-        restaurants = RestaurantMenuItem.objects.select_related('restaurant')
-
-        order_location, created = Location.objects.get_or_create(address=order.address)
-        if created:
-            order_location.latitude, order_location.longitude = fetch_coordinates(apikey, order.address)
-            order_location.save()
-        order_coords = (order_location.latitude, order_location.longitude)
-
-        for order_item in order_items:
-            restaurants = restaurants.filter(product=order_item.product)
-
-        for restaurant in restaurants:
-            rest_location, created = Location.objects.get_or_create(address=restaurant.restaurant.address)
-            if created:
-                rest_location.latitude, rest_location.longitude = fetch_coordinates(apikey, restaurant.restaurant.address)
-                rest_location.save()
-            rest_coords = (rest_location.latitude, rest_location.longitude)
-            restaurant.distance = distance.distance(order_coords, rest_coords).km
-        order.restaurants = restaurants
+        order.get_available_restaurants()
 
     return render(request, template_name='order_items.html', context={
         'order_items': orders
