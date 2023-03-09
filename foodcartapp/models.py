@@ -176,18 +176,18 @@ class Order(models.Model):
         'Комментарий',
         blank=True
     )
-    created_date = models.DateTimeField(
+    created_at = models.DateTimeField(
         'Дата создания',
         default=timezone.now,
         db_index=True
     )
-    called_date = models.DateTimeField(
+    called_at = models.DateTimeField(
         'Дата звонка',
         null=True,
         blank=True,
         db_index=True
     )
-    delivered_date = models.DateTimeField(
+    delivered_at = models.DateTimeField(
         'Дата доставки',
         null=True,
         blank=True,
