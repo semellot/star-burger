@@ -9,7 +9,6 @@ from django.templatetags.static import static
 from phonenumber_field.phonenumber import PhoneNumber
 
 from rest_framework import status
-from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
@@ -19,36 +18,7 @@ from .models import Order
 from .models import OrderItem
 from .models import Product
 
-
-class OrderItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OrderItem
-        fields = ['product', 'quantity']
-
-
-class OrderSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(read_only=True)
-    products = OrderItemSerializer(many=True, allow_empty=False, write_only=True)
-    address=serializers.CharField(max_length=100)
-    firstname=serializers.CharField(max_length=50)
-    lastname=serializers.CharField(max_length=50)
-    phonenumber=serializers.CharField(max_length=50)
-
-    def create(self, validated_data):
-        order = Order.objects.create(
-            address=validated_data['address'],
-            firstname=validated_data['firstname'],
-            lastname=validated_data['lastname'],
-            phonenumber=PhoneNumber.from_string(validated_data['phonenumber'])
-        )
-        products_fields = validated_data['products']
-        products = [OrderItem(order=order, price=fields['quantity']*fields['product'].price, **fields) for fields in products_fields]
-        OrderItem.objects.bulk_create(products)
-        return order
-
-    class Meta:
-        model = Order
-        fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address', 'products']
+from .serializers import OrderSerializer
 
 
 def banners_list_api(request):
