@@ -4,9 +4,15 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 
 from location.models import Location
+from location.geocode import fetch_coordinates
 
 from geopy import distance
 from phonenumber_field.modelfields import PhoneNumberField
+
+from environs import Env
+
+env = Env()
+env.read_env()
 
 
 class OrderQuerySet(models.QuerySet):
@@ -215,10 +221,16 @@ class Order(models.Model):
         return f'{self.firstname} {self.lastname} {self.address}'
 
     def get_available_restaurants(self):
+        apikey = env.str('YANDEX_APIKEY')
         order_items = self.products.select_related('product')
         restaurants = RestaurantMenuItem.objects.select_related('restaurant')
 
         order_location, created = Location.objects.get_or_create(address=self.address)
+        if not order_location.latitude:
+            lat, lon = fetch_coordinates(apikey, order_location.address)
+            order_location.latitude = lat
+            order_location.longitude = lon
+            order_location.save()
         order_coords = (order_location.latitude, order_location.longitude)
 
         for order_item in order_items:
@@ -226,6 +238,11 @@ class Order(models.Model):
 
         for restaurant in restaurants:
             rest_location, created = Location.objects.get_or_create(address=restaurant.restaurant.address)
+            if not rest_location.latitude:
+                lat, lon = fetch_coordinates(apikey, rest_location.address)
+                rest_location.latitude = lat
+                rest_location.longitude = lon
+                rest_location.save()
             rest_coords = (rest_location.latitude, rest_location.longitude)
             restaurant.distance = distance.distance(order_coords, rest_coords).km
         self.restaurants = restaurants

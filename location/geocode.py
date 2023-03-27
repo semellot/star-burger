@@ -2,7 +2,6 @@ import requests
 
 
 def fetch_coordinates(apikey, address):
-    print(f'Address: {address}')
     base_url = "https://geocode-maps.yandex.ru/1.x"
     response = requests.get(base_url, params={
         "geocode": address,
@@ -17,6 +16,4 @@ def fetch_coordinates(apikey, address):
 
     most_relevant = found_places[0]
     lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
-    print(f'longitude: {lon}')
-    print(f'latitude: {lat}')
     return lat, lon
