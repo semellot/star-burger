@@ -2,17 +2,13 @@ from django.db import models
 from django.db.models import F, Sum
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from django.conf import settings
 
 from location.models import Location
 from location.geocode import fetch_coordinates
 
 from geopy import distance
 from phonenumber_field.modelfields import PhoneNumberField
-
-from environs import Env
-
-env = Env()
-env.read_env()
 
 
 class OrderQuerySet(models.QuerySet):
@@ -221,7 +217,7 @@ class Order(models.Model):
         return f'{self.firstname} {self.lastname} {self.address}'
 
     def get_available_restaurants(self):
-        apikey = env.str('YANDEX_APIKEY')
+        apikey = settings.YANDEX_APIKEY
         order_items = self.products.select_related('product')
         restaurants = RestaurantMenuItem.objects.select_related('restaurant')
 
