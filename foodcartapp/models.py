@@ -198,9 +198,9 @@ class Order(models.Model):
         blank=True,
         db_index=True
     )
-    restaurant = models.ForeignKey(
+    cooking_restaurant = models.ForeignKey(
         Restaurant,
-        related_name='orders',
+        related_name='restaurant_orders',
         verbose_name='Ресторан',
         null=True,
         blank=True,
@@ -221,27 +221,30 @@ class Order(models.Model):
         order_items = self.products.select_related('product')
         restaurants = RestaurantMenuItem.objects.select_related('restaurant')
 
-        order_location, created = Location.objects.get_or_create(address=self.address)
-        if not order_location.latitude:
-            lat, lon = fetch_coordinates(apikey, order_location.address)
-            order_location.latitude = lat
-            order_location.longitude = lon
-            order_location.save()
-        order_coords = (order_location.latitude, order_location.longitude)
+        try:
+            order_location, created = Location.objects.get_or_create(address=self.address)
+            if not order_location.latitude:
+                    lat, lon = fetch_coordinates(apikey, order_location.address)
+                    order_location.latitude = lat
+                    order_location.longitude = lon
+                    order_location.save()
+            order_coords = (order_location.latitude, order_location.longitude)
 
-        for order_item in order_items:
-            restaurants = restaurants.filter(product=order_item.product)
+            for order_item in order_items:
+                restaurants = restaurants.filter(product=order_item.product)
 
-        for restaurant in restaurants:
-            rest_location, created = Location.objects.get_or_create(address=restaurant.restaurant.address)
-            if not rest_location.latitude:
-                lat, lon = fetch_coordinates(apikey, rest_location.address)
-                rest_location.latitude = lat
-                rest_location.longitude = lon
-                rest_location.save()
-            rest_coords = (rest_location.latitude, rest_location.longitude)
-            restaurant.distance = distance.distance(order_coords, rest_coords).km
-        self.restaurants = restaurants
+            for restaurant in restaurants:
+                rest_location, created = Location.objects.get_or_create(address=restaurant.restaurant.address)
+                if not rest_location.latitude:
+                    lat, lon = fetch_coordinates(apikey, rest_location.address)
+                    rest_location.latitude = lat
+                    rest_location.longitude = lon
+                    rest_location.save()
+                rest_coords = (rest_location.latitude, rest_location.longitude)
+                restaurant.distance = distance.distance(order_coords, rest_coords).km
+        except:
+            pass
+        return restaurants
 
 
 class OrderItem(models.Model):

@@ -93,7 +93,7 @@ def view_orders(request):
     orders = Order.objects.prefetch_related('products').exclude(status='Done').calculation_cost()
 
     for order in orders:
-        order.get_available_restaurants()
+        order.restaurants = order.get_available_restaurants()
 
     return render(request, template_name='order_items.html', context={
         'order_items': orders
