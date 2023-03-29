@@ -31,7 +31,7 @@ class OrderSerializer(serializers.ModelSerializer):
             phonenumber=validated_data['phonenumber']
         )
         products_fields = validated_data['products']
-        products = [OrderItem(order=order, price=fields['quantity']*fields['product'].price, **fields) for fields in products_fields]
+        products = [OrderItem(order=order, price=fields['product'].price, **fields) for fields in products_fields]
         OrderItem.objects.bulk_create(products)
         return order
 

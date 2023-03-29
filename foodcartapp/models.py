@@ -13,7 +13,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 class OrderQuerySet(models.QuerySet):
     def calculation_cost(self):
-        return self.annotate(cost=Sum(F('products__quantity') * F('products__product__price')))
+        return self.annotate(cost=Sum(F('products__quantity') * F('products__price')))
 
 
 class Restaurant(models.Model):
