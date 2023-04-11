@@ -61,6 +61,9 @@ pip install -r requirements.txt
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 YANDEX_APIKEY=key
 ```
+Также понадобятся следующие переменные:
+- `ROLLBAR_TOKEN` - токен для приложения Rollbar, который помогает отслеживать ошибки на сайте. Сгенерировать токен можно на сайте [Rollbar](https://rollbar.com/)
+- `DB_URL` - ссылка с данными для подключения к БД. Форматы можно посмотреть по [ссылке](https://github.com/jazzband/dj-database-url#url-schema)
 
 Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
 
@@ -152,6 +155,7 @@ Parcel будет следить за файлами в каталоге `bundle
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
 - `ROLLBAR_TOKEN` - токен для приложения Rollbar, который помогает отслеживать ошибки на сайте. Сгенерировать токен можно на сайте [Rollbar](https://rollbar.com/)
 - `ROLLBAR_ENV` - название окружения Rollbar, для удобства фитльтрации ошибок.
+- `DB_URL` - ссылка с данными для подключения к БД. Форматы можно посмотреть по [ссылке](https://github.com/jazzband/dj-database-url#url-schema)
 
 ## Цели проекта
 

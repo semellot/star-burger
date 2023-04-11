@@ -14,4 +14,8 @@ class Migration(migrations.Migration):
             model_name='orderitem',
             name='count',
         ),
+        migrations.RemoveField(
+            model_name='orderitem',
+            name='count2',
+        ),
     ]

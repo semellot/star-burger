@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='orderitem',
-            name='count',
+            name='count2',
             field=models.IntegerField(default=0, verbose_name='Количество2'),
             preserve_default=False,
         ),
