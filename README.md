@@ -21,7 +21,7 @@
 
 Скачайте код:
 ```sh
-git clone https://github.com/devmanorg/star-burger.git
+git clone https://github.com/semellot/star-burger.git
 ```
 
 Перейдите в каталог проекта:
@@ -156,6 +156,33 @@ Parcel будет следить за файлами в каталоге `bundle
 - `ROLLBAR_TOKEN` - токен для приложения Rollbar, который помогает отслеживать ошибки на сайте. Сгенерировать токен можно на сайте [Rollbar](https://rollbar.com/)
 - `ROLLBAR_ENV` - название окружения Rollbar, для удобства фитльтрации ошибок.
 - `DB_URL` - ссылка с данными для подключения к БД. Форматы можно посмотреть по [ссылке](https://github.com/jazzband/dj-database-url#url-schema)
+
+Для быстрого деплоя на боевом сервере можно создать Bash-скрипт со следующим содержимым:
+
+```
+#!/bin/bash
+set -e
+
+cd /opt/star-burger/
+git pull
+
+source venv/bin/activate
+
+pip install -r requirements.txt
+
+yes y | npx browserslist@latest --update-db
+npm ci --dev
+./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+
+yes yes | python manage.py collectstatic
+
+python manage.py migrate
+
+systemctl restart starburger.service
+systemctl restart nginx
+
+echo "Deployment completed successfully"
+```
 
 ## Цели проекта
 
