@@ -165,14 +165,13 @@ Parcel будет следить за файлами в каталоге `bundle
 set -e
 
 cd /opt/star-burger/
-git pull
+git reset --hard -q HEAD
+git pull -q
 
 source venv/bin/activate
 
-pip install -r requirements.txt
+pip install -q -r requirements.txt
 
-yes y | npx browserslist@latest --update-db
-npm ci --dev
 ./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
 
 yes yes | python manage.py collectstatic
@@ -183,6 +182,7 @@ systemctl restart starburger.service
 systemctl restart nginx
 
 echo "Deployment completed successfully"
+
 ```
 
 ## Цели проекта
