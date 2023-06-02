@@ -15,7 +15,7 @@ yes yes | python manage.py collectstatic > NUL
 
 python manage.py migrate > NUL
 
-systemctl restart starburger.service
+systemctl reload nginx
 
 echo "Deployment completed successfully"
 
