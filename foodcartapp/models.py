@@ -31,6 +31,11 @@ class Restaurant(models.Model):
         max_length=50,
         blank=True,
     )
+    test = models.CharField(
+        'Тестовое поле',
+        max_length=50,
+        blank=True,
+    )
 
     class Meta:
         verbose_name = 'ресторан'
